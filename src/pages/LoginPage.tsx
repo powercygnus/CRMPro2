@@ -62,11 +62,18 @@ export function LoginPage() {
     const poll = async () => {
       try {
         const res = await fetch(`/api/password-reset/${requestId}`);
-        if (!res.ok) {
-          console.error('[ForgotPassword] Poll HTTP error:', res.status, await res.text());
+        const text = await res.text();
+        if (!res.ok || !text) {
+          console.error('[ForgotPassword] Poll HTTP error:', res.status, text || '(empty body)');
           return;
         }
-        const json = await res.json();
+        let json;
+        try {
+          json = JSON.parse(text);
+        } catch {
+          console.error('[ForgotPassword] Poll received non-JSON response:', text.slice(0, 200));
+          return;
+        }
         console.log('[ForgotPassword] Poll result:', json);
 
         if (json.status === 'approved') {
@@ -507,7 +514,7 @@ export function LoginPage() {
                     const name = forgotUsername.trim();
                     if (!name) return;
 
-                    setForgot((prev) => ({ ...prev, stage: 'pending', error: null }));
+                    setForgot((prev) => ({ ...prev, error: null }));
 
                     try {
                       console.log('[ForgotPassword] Submitting request for:', name);
@@ -516,15 +523,25 @@ export function LoginPage() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ username: name }),
                       });
-                      const json = await res.json();
+
+                      const text = await res.text();
+                      if (!text) {
+                        throw new Error('Server returned an empty response. Please try again.');
+                      }
+                      let json;
+                      try {
+                        json = JSON.parse(text);
+                      } catch {
+                        throw new Error('Server returned an invalid response. Please try again.');
+                      }
                       console.log('[ForgotPassword] Backend response:', json);
 
                       if (!res.ok || !json.success) {
                         throw new Error(json.error || `Server error ${res.status}`);
                       }
 
-                      // Stay in pending stage; polling useEffect will take over
-                      setForgot((prev) => ({ ...prev, requestId: json.requestId }));
+                      // Transition to pending only after requestId is confirmed
+                      setForgot((prev) => ({ ...prev, stage: 'pending', requestId: json.requestId }));
                     } catch (err) {
                       const msg = err instanceof Error ? err.message : String(err);
                       console.error('[ForgotPassword] Request failed:', err);
@@ -568,7 +585,7 @@ export function LoginPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-base font-bold text-gray-900 dark:text-white">Request Sent</h3>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white">Request sent successfully.</h3>
                   <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
                     Waiting for Admin approval…
                     <br />
@@ -605,7 +622,7 @@ export function LoginPage() {
                     Temporary Password
                   </p>
                   <div className="flex items-center justify-between gap-3">
-                    <code className="text-lg font-bold tracking-widest text-gray-900 dark:text-white select-all break-all">
+                    <code className="text-lg font-bold tracking-widest font-mono text-gray-900 dark:text-white select-all break-all">
                       {forgot.tempPassword}
                     </code>
                     <button
