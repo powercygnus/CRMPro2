@@ -18,8 +18,16 @@ const { Pool } = pg;
 function buildPoolerUrl(raw) {
   if (!raw) return null;
   try {
-    const u = new URL(raw.trim());
-    // Extract project id from hostname: db.<id>.supabase.co
+    const trimmed = raw.trim();
+    const u = new URL(trimmed);
+    // If the URL already points at the pooler (port 6543 or hostname contains
+    // "pooler"), use it as-is — regex parsing a production pooler string would
+    // produce a garbled rewrite.
+    if (u.port === '6543' || u.hostname.includes('pooler')) {
+      console.log('[DB] SUPABASE_DB_URL already targets pooler — using as-is.');
+      return trimmed;
+    }
+    // Rewrite direct host (db.<id>.supabase.co:5432) → session pooler
     const match = u.hostname.match(/^db\.(.+)\.supabase\.co$/);
     const projectId = match ? match[1] : u.hostname.split('.')[1];
     u.hostname = 'aws-0-ap-northeast-1.pooler.supabase.com';
