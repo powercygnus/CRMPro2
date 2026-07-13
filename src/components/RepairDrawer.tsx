@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, AlertCircle, User, Smartphone, Settings, DollarSign, Bot, BellOff, History, Building2 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { showToast } from './Toast';
@@ -367,10 +368,12 @@ export function RepairDrawer({ open, onClose, editingRepair }: RepairDrawerProps
   if (!open) return null;
 
   // ============================================================
-  // Render
+  // Render — portal to document.body so the fixed elements are
+  // never inside <main> or any scroll container, preventing the
+  // scrollbar flash / layout shift on open.
   // ============================================================
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -775,7 +778,8 @@ export function RepairDrawer({ open, onClose, editingRepair }: RepairDrawerProps
           </div>
         </div>
       )}
-    </>
+    </>,
+    document.body
   );
 }
 

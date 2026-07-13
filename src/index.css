@@ -8,19 +8,20 @@
   * {
     @apply border-gray-200 dark:border-slate-800/50;
   }
-  html {
-    /* Reserve the vertical scrollbar gutter at the viewport level at all times.
-       Without this, Chrome briefly paints a native scrollbar when a fixed
-       overlay mounts, stealing ~15 px from the viewport width and jolting
-       the entire layout to the left. */
-    scrollbar-gutter: stable;
-    overflow-x: hidden;
+  html,
+  body {
+    /* The app uses h-screen + internal scrolling (overflow-y-scroll on <main>).
+       The viewport itself never needs to scroll, so we fully suppress any
+       viewport-level scrollbar. Without this, Chrome briefly paints a native
+       OS scrollbar at the viewport edge when a fixed overlay mounts, stealing
+       ~15 px and jolting the layout left. */
+    overflow: hidden;
+    height: 100%;
   }
   body {
     @apply bg-gray-50 dark:bg-[#0b0f19] text-gray-900 dark:text-slate-100 antialiased;
     font-feature-settings: 'cv11', 'ss01';
     font-variation-settings: normal;
-    overflow-x: hidden;
   }
 }
 
