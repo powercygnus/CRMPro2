@@ -379,7 +379,7 @@ export function RepairDrawer({ open, onClose, editingRepair }: RepairDrawerProps
       />
 
       {/* Drawer */}
-      <aside className="fixed inset-y-0 right-0 z-50 w-full max-w-2xl bg-white dark:bg-[#131b2e] shadow-2xl animate-slide-in-right flex flex-col">
+      <aside className="fixed inset-y-0 right-0 z-50 w-full max-w-2xl bg-white dark:bg-[#131b2e] shadow-2xl animate-slide-in-right flex flex-col will-change-transform">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-800 bg-white dark:bg-[#131b2e] px-6 py-4 flex-shrink-0">
           <div>

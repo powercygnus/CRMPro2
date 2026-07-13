@@ -397,7 +397,7 @@ export function Layout({ currentPage, onNavigate, children }: LayoutProps) {
   // ============================================================
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-slate-950">
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-slate-950">
       {/* Desktop sidebar */}
       <aside
         className={`hidden lg:flex relative flex-col bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 transition-all duration-300 ${
@@ -431,7 +431,7 @@ export function Layout({ currentPage, onNavigate, children }: LayoutProps) {
       <div className="flex-1 flex flex-col overflow-hidden">
         {desktopHeader}
         {mobileHeader}
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 overflow-y-scroll [scrollbar-gutter:stable]">{children}</main>
       </div>
     </div>
   );
