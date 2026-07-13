@@ -8,10 +8,19 @@
   * {
     @apply border-gray-200 dark:border-slate-800/50;
   }
+  html {
+    /* Reserve the vertical scrollbar gutter at the viewport level at all times.
+       Without this, Chrome briefly paints a native scrollbar when a fixed
+       overlay mounts, stealing ~15 px from the viewport width and jolting
+       the entire layout to the left. */
+    scrollbar-gutter: stable;
+    overflow-x: hidden;
+  }
   body {
     @apply bg-gray-50 dark:bg-[#0b0f19] text-gray-900 dark:text-slate-100 antialiased;
     font-feature-settings: 'cv11', 'ss01';
     font-variation-settings: normal;
+    overflow-x: hidden;
   }
 }
 
