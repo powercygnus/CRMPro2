@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useStore } from "../context/StoreContext";
 import { showToast } from "../components/Toast";
+import { loadFromSupabase } from "../services/supabaseSync";
 
 // ─── Forgot-password stage machine ───────────────────────────────────────────
 type ForgotStage = 'form' | 'pending' | 'approved' | 'rejected';
@@ -79,6 +80,14 @@ export function LoginPage() {
         if (json.status === 'approved') {
           clearInterval(pollRef.current!);
           pollRef.current = null;
+          // Refresh users from Supabase so the login check sees the updated
+          // password written by the admin's approve action.
+          try {
+            const fresh = await loadFromSupabase();
+            if (fresh) service.mergeExternalState(fresh);
+          } catch {
+            // Non-fatal: if Supabase is unreachable the user can refresh the page
+          }
           setForgot((prev) => ({
             ...prev,
             stage: 'approved',

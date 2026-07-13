@@ -150,14 +150,34 @@ export function NotificationBell() {
     if (!notif.related_id || !user) return;
     const tempPass = genTempPassword();
     const now = new Date().toISOString();
+    const reqUsername = pendingResets[notif.related_id]?.username ?? 'user';
+
+    // 1. Write temp password + status to the reset-request row
     await supabase.from('password_reset_requests').update({
       status: 'approved',
       temp_password: tempPass,
       resolved_at: now,
       resolved_by: user.username,
     }).eq('id', notif.related_id);
+
+    // 2. Update the matching user's password so they can actually log in.
+    //    Passwords are stored as plain text; we write the temp password directly.
+    const targetUser = service.getState().users.find(
+      (u) => u.username === reqUsername
+    );
+    if (targetUser) {
+      // Update in-memory state + sync to Supabase users table immediately
+      service.updateUser(targetUser.id, { password: tempPass });
+    } else {
+      // User not in local state (e.g. localStorage cleared) — write directly to DB
+      const { error } = await supabase
+        .from('users')
+        .update({ password: tempPass })
+        .eq('username', reqUsername);
+      if (error) console.error('[NotificationBell] Failed to update user password:', error.message);
+    }
+
     await markRead(notif.id);
-    const reqUsername = pendingResets[notif.related_id]?.username ?? 'user';
     setPendingResets((prev) => ({
       ...prev,
       [notif.related_id!]: { ...prev[notif.related_id!], status: 'approved' },
