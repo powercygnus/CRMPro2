@@ -428,7 +428,7 @@ export function Layout({ currentPage, onNavigate, children }: LayoutProps) {
       )}
 
       {/* Main content area */}
-      <div className="flex-1 flex flex-col overflow-hidden will-change-transform">
+      <div className="flex-1 flex flex-col overflow-hidden">
         {desktopHeader}
         {mobileHeader}
         <main className="flex-1 overflow-y-scroll [scrollbar-gutter:stable]">{children}</main>
