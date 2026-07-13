@@ -204,6 +204,7 @@ export function RepairsPage() {
   };
 
   return (
+    <>
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -487,36 +488,39 @@ export function RepairsPage() {
           </div>
         </div>
       </div>
-
-      {/* Drawer Container Component */}
-      <RepairDrawer
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        editingRepair={editingRepair}
-      />
-
-      {/* Right-side Detail Drawer */}
-      <RepairDetailDrawer
-        repair={detailRepair}
-        open={!!detailRepair}
-        onClose={() => setDetailRepair(null)}
-        onEdit={(repair) => {
-          setDetailRepair(null);
-          handleEdit(repair);
-        }}
-        onPrint={(type, repair) => {
-          setPreviewType(type);
-          setPreviewRepair(repair);
-        }}
-      />
-
-      {/* Document Preview Modal */}
-      <DocumentPreviewModal
-        open={previewType !== null}
-        type={previewType}
-        repair={previewRepair}
-        onClose={() => setPreviewType(null)}
-      />
     </div>
+
+    {/* Drawer Container Component — rendered outside the padded page div so
+        mounting/unmounting these fixed-position elements does not trigger a
+        layout recalculation on the content wrapper. */}
+    <RepairDrawer
+      open={formOpen}
+      onClose={() => setFormOpen(false)}
+      editingRepair={editingRepair}
+    />
+
+    {/* Right-side Detail Drawer */}
+    <RepairDetailDrawer
+      repair={detailRepair}
+      open={!!detailRepair}
+      onClose={() => setDetailRepair(null)}
+      onEdit={(repair) => {
+        setDetailRepair(null);
+        handleEdit(repair);
+      }}
+      onPrint={(type, repair) => {
+        setPreviewType(type);
+        setPreviewRepair(repair);
+      }}
+    />
+
+    {/* Document Preview Modal */}
+    <DocumentPreviewModal
+      open={previewType !== null}
+      type={previewType}
+      repair={previewRepair}
+      onClose={() => setPreviewType(null)}
+    />
+    </>
   );
 }
