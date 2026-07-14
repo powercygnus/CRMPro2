@@ -69,7 +69,17 @@ export function NotificationBell() {
   const panelRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
 
-  const unreadCount = notifications.filter((n) => n.status === 'unread').length;
+  // Non-admin users don't see password-reset or system/admin notifications
+  const visibleNotifications = notifications.filter((n) => {
+    if (!isAdmin && (
+      n.type === 'password_reset' ||
+      n.type === 'system' ||
+      n.type === 'admin' ||
+      n.title?.toLowerCase().includes('password')
+    )) return false;
+    return true;
+  });
+  const unreadCount = visibleNotifications.filter((n) => n.status === 'unread').length;
 
   // ── Load ──────────────────────────────────────────────────────────────────
 
@@ -257,13 +267,13 @@ export function NotificationBell() {
 
           {/* Notification list */}
           <div className="max-h-[440px] overflow-y-auto divide-y divide-gray-50 dark:divide-slate-800/60">
-            {notifications.length === 0 ? (
+            {visibleNotifications.length === 0 ? (
               <div className="py-12 text-center">
                 <Bell className="h-8 w-8 mx-auto mb-2 text-gray-300 dark:text-slate-600" />
                 <p className="text-sm text-gray-400 dark:text-gray-500">No notifications yet</p>
               </div>
             ) : (
-              notifications.map((notif) => {
+              visibleNotifications.map((notif) => {
                 const meta = TYPE_META[notif.type] ?? TYPE_META.delivery;
                 const isUnread = notif.status === 'unread';
                 const resetReq = notif.related_id ? pendingResets[notif.related_id] : null;

@@ -242,11 +242,14 @@ export function Layout({ currentPage, onNavigate, children }: LayoutProps) {
             <div className="space-y-1.5">
               {state.users.slice(0, 3).map((u) => (
                 <div key={u.id} className="flex items-center gap-2 text-xs">
-                  <span
-                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                      isUserActive(u.last_seen) ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
-                    }`}
-                  />
+                  <div className="relative shrink-0">
+                    <UserAvatar user={u} size="xs" />
+                    <span
+                      className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-white dark:border-slate-800 ${
+                        isUserActive(u.last_seen) ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
+                      }`}
+                    />
+                  </div>
                   <span className="truncate font-medium text-gray-700 dark:text-gray-300">
                     {u.nickname?.trim() || u.username}
                   </span>

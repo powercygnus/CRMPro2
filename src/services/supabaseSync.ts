@@ -115,6 +115,8 @@ export async function loadFromSupabase(): Promise<Partial<AppState> | null> {
 
     if (usersRes.data?.length) {
       partial.users = usersRes.data.map((u) => ({
+        nickname: null,
+        avatar_url: null,
         ...u,
         is_active: false,
       })) as User[];
