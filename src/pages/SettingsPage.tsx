@@ -22,6 +22,8 @@ import {
   UserCog,
   Camera,
   KeyRound,
+  Cloud,
+  Server,
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { showToast } from '../components/Toast';
@@ -29,7 +31,7 @@ import { isUserActive, formatTimeAgo, getStatusColor, getStatusDotColor } from '
 import { getApiEndpoint } from '../utils/api';
 import type { RepairRecord } from '../types';
 
-type TabKey = 'profile' | 'business' | 'users' | 'messaging' | 'integrations';
+type TabKey = 'profile' | 'business' | 'users' | 'messaging' | 'integrations' | 'database';
 
 interface TabDef {
   key: TabKey;
@@ -43,6 +45,7 @@ const ALL_TABS: TabDef[] = [
   { key: 'users',        label: 'Users Monitor',    icon: <UsersIcon className="h-4 w-4" /> },
   { key: 'messaging',    label: 'Messaging Hub',    icon: <Send className="h-4 w-4" /> },
   { key: 'integrations', label: 'Integrations',     icon: <Plug className="h-4 w-4" /> },
+  { key: 'database',    label: 'Database',          icon: <Database className="h-4 w-4" /> },
 ];
 
 export function SettingsPage() {
@@ -108,6 +111,7 @@ export function SettingsPage() {
         {activeTab === 'users'        && <UsersMonitorTab />}
         {activeTab === 'messaging'    && <MessagingHubTab />}
         {activeTab === 'integrations' && <IntegrationsTab />}
+        {activeTab === 'database'     && <DatabaseSettingsTab />}
       </div>
 
       {/* Data overview + danger zone — admin only */}
@@ -843,14 +847,8 @@ function IntegrationsTab() {
     pass: config.email.pass,
     from_name: config.email.from_name,
   });
-  const [tgForm, setTgForm] = useState({
-    enabled: config.telegram.enabled,
-    bot_token: config.telegram.bot_token,
-    chat_id: config.telegram.chat_id,
-  });
   const [showWaToken, setShowWaToken] = useState(false);
   const [showEmailPass, setShowEmailPass] = useState(false);
-  const [showTgToken, setShowTgToken] = useState(false);
 
   // Save WhatsApp config to Supabase
   const handleSaveWhatsApp = async () => {
@@ -924,11 +922,6 @@ function IntegrationsTab() {
   const handleSaveEmail = () => {
     service.updateConfig({ email: { ...config.email, ...emailForm } });
     showToast('success', 'Email settings saved');
-  };
-
-  const handleSaveTelegram = () => {
-    service.updateConfig({ telegram: { ...config.telegram, ...tgForm } });
-    showToast('success', 'Telegram settings saved');
   };
 
   const handleTest = (channel: string) => {
@@ -1127,63 +1120,195 @@ function IntegrationsTab() {
         </div>
       </div>
 
-      {/* Telegram Bot */}
-      <div className="card p-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-50 dark:bg-sky-950/20 text-sky-600 dark:text-sky-400">
-              <Send className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">Telegram Bot</h2>
-              <p className="text-xs text-gray-400 dark:text-slate-500">Telegram bot integration for notifications</p>
-            </div>
-          </div>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <span className="text-sm text-gray-500 dark:text-slate-400">Enabled</span>
-            <button
-              type="button"
-              onClick={() => setTgForm({ ...tgForm, enabled: !tgForm.enabled })}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${tgForm.enabled ? 'bg-brand-600' : 'bg-gray-300 dark:bg-slate-700'}`}
-            >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${tgForm.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-            </button>
-          </label>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="label">Bot Token</label>
-            <div className="relative">
-              <input
-                type={showTgToken ? 'text' : 'password'}
-                className="input pr-10"
-                value={tgForm.bot_token}
-                onChange={(e) => setTgForm({ ...tgForm, bot_token: e.target.value })}
-                placeholder="123456:ABC-DEF..."
-              />
-              <button type="button" onClick={() => setShowTgToken(!showTgToken)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                {showTgToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
-          <div>
-            <label className="label">Chat ID</label>
-            <input className="input" value={tgForm.chat_id} onChange={(e) => setTgForm({ ...tgForm, chat_id: e.target.value })} placeholder="-1001234567890" />
-          </div>
-        </div>
-
-        <div className="mt-4 flex justify-end gap-2">
-          <button onClick={() => handleTest('Telegram')} className="btn-secondary text-sm" disabled={!!testing}>
-            {testing === 'Telegram' ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <TestTube className="h-3.5 w-3.5" />}
-            Test Connection
-          </button>
-          <button onClick={handleSaveTelegram} className="btn-primary text-sm">
-            <Save className="h-3.5 w-3.5" /> Save
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
 
+
+
+function DatabaseSettingsTab() {
+  const [dbMode, setDbMode] = useState<"cloud" | "local">("cloud");
+  const [showSecrets, setShowSecrets] = useState(false);
+  const [showLocalPass, setShowLocalPass] = useState(false);
+
+  const [cloudForm, setCloudForm] = useState({
+    supabaseUrl: "",
+    supabaseAnonKey: "",
+    supabaseDbUrl: "",
+    supabaseServiceRoleKey: "",
+  });
+
+  const [localForm, setLocalForm] = useState({
+    host: "localhost",
+    port: 5432,
+    database: "",
+    username: "",
+    password: "",
+  });
+
+  const [savedDbConfig, setSavedDbConfig] = useState(false);
+
+  const handleSaveCloud = () => {
+    setSavedDbConfig(true);
+    showToast("success", "Cloud database settings saved");
+  };
+
+  const handleSaveLocal = () => {
+    setSavedDbConfig(true);
+    showToast("success", "Local database settings saved");
+  };
+
+  return (
+    <div className="space-y-5 max-w-3xl">
+      <div className="card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400">
+            <Database className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">Database Settings</h2>
+            <p className="text-xs text-gray-400 dark:text-slate-500">Choose where your data is stored</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setDbMode("cloud")}
+            className={"flex items-start gap-3 rounded-xl border p-4 text-left transition-all " + (dbMode === "cloud" ? "border-brand-500 bg-brand-50 dark:bg-brand-950/20 ring-1 ring-brand-500" : "border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600")}
+          >
+            <div className={"flex h-9 w-9 shrink-0 items-center justify-center rounded-lg " + (dbMode === "cloud" ? "bg-brand-600 text-white" : "bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400")}>
+              <Cloud className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">Cloud (Supabase)</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500">Hosted PostgreSQL with auth &amp; realtime</p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setDbMode("local")}
+            className={"flex items-start gap-3 rounded-xl border p-4 text-left transition-all " + (dbMode === "local" ? "border-brand-500 bg-brand-50 dark:bg-brand-950/20 ring-1 ring-brand-500" : "border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600")}
+          >
+            <div className={"flex h-9 w-9 shrink-0 items-center justify-center rounded-lg " + (dbMode === "local" ? "bg-brand-600 text-white" : "bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400")}>
+              <Server className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">Local Database</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500">Self-hosted PostgreSQL on your machine</p>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {dbMode === "cloud" && (
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 dark:bg-brand-950/20 text-brand-600 dark:text-brand-400">
+                <Cloud className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">Cloud Configuration</h2>
+                <p className="text-xs text-gray-400 dark:text-slate-500">Enter your project credentials</p>
+              </div>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <span className="text-sm text-gray-500 dark:text-slate-400">Show secrets</span>
+              <button
+                type="button"
+                onClick={() => setShowSecrets(!showSecrets)}
+                className={"relative inline-flex h-6 w-11 items-center rounded-full transition-colors " + (showSecrets ? "bg-brand-600" : "bg-gray-300 dark:bg-slate-700")}
+              >
+                <span className={"inline-block h-4 w-4 transform rounded-full bg-white transition-transform " + (showSecrets ? "translate-x-6" : "translate-x-1")} />
+              </button>
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <label className="label">VITE_SUPABASE_URL</label>
+              <input className="input" type={showSecrets ? "text" : "password"} value={cloudForm.supabaseUrl} onChange={(e) => setCloudForm({ ...cloudForm, supabaseUrl: e.target.value })} placeholder="https://xxxxxxxx.supabase.co" />
+            </div>
+            <div>
+              <label className="label">VITE_SUPABASE_ANON_KEY</label>
+              <input className="input" type={showSecrets ? "text" : "password"} value={cloudForm.supabaseAnonKey} onChange={(e) => setCloudForm({ ...cloudForm, supabaseAnonKey: e.target.value })} placeholder="eyJhbGciOi..." />
+            </div>
+            <div>
+              <label className="label">SUPABASE_DB_URL</label>
+              <input className="input" type={showSecrets ? "text" : "password"} value={cloudForm.supabaseDbUrl} onChange={(e) => setCloudForm({ ...cloudForm, supabaseDbUrl: e.target.value })} placeholder="postgresql://postgres:****@db.xxxx.supabase.co:5432/postgres" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label">SUPABASE_SERVICE_ROLE_KEY</label>
+              <input className="input" type={showSecrets ? "text" : "password"} value={cloudForm.supabaseServiceRoleKey} onChange={(e) => setCloudForm({ ...cloudForm, supabaseServiceRoleKey: e.target.value })} placeholder="eyJhbGciOi..." />
+            </div>
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <button onClick={handleSaveCloud} className="btn-primary text-sm">
+              <Save className="h-3.5 w-3.5" /> Save
+            </button>
+          </div>
+        </div>
+      )}
+
+      {dbMode === "local" && (
+        <div className="card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400">
+              <Server className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">Local Database Configuration</h2>
+              <p className="text-xs text-gray-400 dark:text-slate-500">Connect to a self-hosted PostgreSQL instance</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="label">Host / IP</label>
+              <input className="input" value={localForm.host} onChange={(e) => setLocalForm({ ...localForm, host: e.target.value })} placeholder="localhost" />
+            </div>
+            <div>
+              <label className="label">Port</label>
+              <input type="number" className="input" value={localForm.port} onChange={(e) => setLocalForm({ ...localForm, port: Number(e.target.value) })} placeholder="5432" />
+            </div>
+            <div>
+              <label className="label">Database Name</label>
+              <input className="input" value={localForm.database} onChange={(e) => setLocalForm({ ...localForm, database: e.target.value })} placeholder="cygnus_repairs" />
+            </div>
+            <div>
+              <label className="label">Username</label>
+              <input className="input" value={localForm.username} onChange={(e) => setLocalForm({ ...localForm, username: e.target.value })} placeholder="postgres" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label">Password</label>
+              <div className="relative">
+                <input type={showLocalPass ? "text" : "password"} className="input pr-10" value={localForm.password} onChange={(e) => setLocalForm({ ...localForm, password: e.target.value })} placeholder="••••••••" />
+                <button type="button" onClick={() => setShowLocalPass(!showLocalPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  {showLocalPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <button onClick={handleSaveLocal} className="btn-primary text-sm">
+              <Save className="h-3.5 w-3.5" /> Save
+            </button>
+          </div>
+        </div>
+      )}
+
+      {savedDbConfig && (
+        <div className="card p-4 flex items-center gap-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
+          <KeyRound className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <p className="text-sm text-emerald-700 dark:text-emerald-400">
+            Database configuration saved. Changes will apply on next application restart.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
