@@ -310,6 +310,21 @@ export interface FlowStatuses {
   cancel_statuses: string[];
 }
 
+export interface DatabaseSettings {
+  mode: 'cloud' | 'local';
+  // Cloud (Supabase)
+  supabase_url: string;
+  supabase_anon_key: string;
+  supabase_db_url: string;
+  supabase_service_role_key: string;
+  // Local
+  local_host: string;
+  local_port: number;
+  local_database: string;
+  local_username: string;
+  local_password: string;
+}
+
 export interface SystemConfig {
   company_name: string;
   address: string;
@@ -323,6 +338,7 @@ export interface SystemConfig {
   telegram: TelegramSettings;
   flow_statuses: FlowStatuses;
   whatsapp_templates: WhatsAppTemplateDef[];
+  database: DatabaseSettings;
 }
 
 // ============================================================

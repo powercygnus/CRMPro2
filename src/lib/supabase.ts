@@ -1,15 +1,2 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase environment variables not configured. Using localStorage fallback.');
-}
-
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key'
-);
-
-export default supabase;
+export { supabase, isSupabaseConfigured, reinitSupabaseClient } from '../services/supabaseClient';
+export { supabase as default } from '../services/supabaseClient';

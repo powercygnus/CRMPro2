@@ -354,6 +354,18 @@ const defaultConfig: SystemConfig = {
     finish_statuses: ['Ready For Pickup'],
     cancel_statuses: ['Canceled'],
   },
+  database: {
+    mode: 'cloud',
+    supabase_url: '',
+    supabase_anon_key: '',
+    supabase_db_url: '',
+    supabase_service_role_key: '',
+    local_host: 'localhost',
+    local_port: 5432,
+    local_database: '',
+    local_username: '',
+    local_password: '',
+  },
   whatsapp_templates: [
     {
       key: 'crm_received',

@@ -1127,35 +1127,67 @@ function IntegrationsTab() {
 
 
 function DatabaseSettingsTab() {
-  const [dbMode, setDbMode] = useState<"cloud" | "local">("cloud");
+  const { state, service } = useStore();
+  const config = state.config;
+  const [dbMode, setDbMode] = useState<"cloud" | "local">(config.database?.mode ?? "cloud");
   const [showSecrets, setShowSecrets] = useState(false);
   const [showLocalPass, setShowLocalPass] = useState(false);
 
   const [cloudForm, setCloudForm] = useState({
-    supabaseUrl: "",
-    supabaseAnonKey: "",
-    supabaseDbUrl: "",
-    supabaseServiceRoleKey: "",
+    supabaseUrl: config.database?.supabase_url ?? "",
+    supabaseAnonKey: config.database?.supabase_anon_key ?? "",
+    supabaseDbUrl: config.database?.supabase_db_url ?? "",
+    supabaseServiceRoleKey: config.database?.supabase_service_role_key ?? "",
   });
 
   const [localForm, setLocalForm] = useState({
-    host: "localhost",
-    port: 5432,
-    database: "",
-    username: "",
-    password: "",
+    host: config.database?.local_host ?? "localhost",
+    port: config.database?.local_port ?? 5432,
+    database: config.database?.local_database ?? "",
+    username: config.database?.local_username ?? "",
+    password: config.database?.local_password ?? "",
   });
 
   const [savedDbConfig, setSavedDbConfig] = useState(false);
 
   const handleSaveCloud = () => {
+    service.updateConfig({
+      database: {
+        mode: "cloud",
+        supabase_url: cloudForm.supabaseUrl,
+        supabase_anon_key: cloudForm.supabaseAnonKey,
+        supabase_db_url: cloudForm.supabaseDbUrl,
+        supabase_service_role_key: cloudForm.supabaseServiceRoleKey,
+        local_host: localForm.host,
+        local_port: localForm.port,
+        local_database: localForm.database,
+        local_username: localForm.username,
+        local_password: localForm.password,
+      },
+    });
     setSavedDbConfig(true);
-    showToast("success", "Cloud database settings saved");
+    showToast("success", "Cloud database settings saved. Reloading to apply new connection...");
+    setTimeout(() => window.location.reload(), 1500);
   };
 
   const handleSaveLocal = () => {
+    service.updateConfig({
+      database: {
+        mode: "local",
+        supabase_url: cloudForm.supabaseUrl,
+        supabase_anon_key: cloudForm.supabaseAnonKey,
+        supabase_db_url: cloudForm.supabaseDbUrl,
+        supabase_service_role_key: cloudForm.supabaseServiceRoleKey,
+        local_host: localForm.host,
+        local_port: localForm.port,
+        local_database: localForm.database,
+        local_username: localForm.username,
+        local_password: localForm.password,
+      },
+    });
     setSavedDbConfig(true);
-    showToast("success", "Local database settings saved");
+    showToast("success", "Local database settings saved. Reloading to apply new connection...");
+    setTimeout(() => window.location.reload(), 1500);
   };
 
   return (

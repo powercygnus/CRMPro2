@@ -101,6 +101,22 @@ export function loadState(): AppState {
         ...s,
       }));
       if (!parsed.deliveries) parsed.deliveries = [];
+      // Back-compat: ensure database config exists
+      if (!parsed.config) parsed.config = {} as any;
+      if (!parsed.config.database) {
+        parsed.config.database = {
+          mode: 'cloud',
+          supabase_url: '',
+          supabase_anon_key: '',
+          supabase_db_url: '',
+          supabase_service_role_key: '',
+          local_host: 'localhost',
+          local_port: 5432,
+          local_database: '',
+          local_username: '',
+          local_password: '',
+        };
+      }
       return parsed;
     }
   } catch (e) {

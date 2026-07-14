@@ -8,7 +8,7 @@
  *  - Graceful fallback: if Supabase is unavailable the app continues
  *    with localStorage only.
  */
-import { supabase } from './supabaseClient';
+import { supabase, isSupabaseConfigured } from './supabaseClient';
 import type {
   AppState,
   User,
@@ -30,11 +30,7 @@ import type {
 // Helpers
 // ============================================================
 
-function isSupabaseConfigured(): boolean {
-  const url = import.meta.env.VITE_SUPABASE_URL;
-  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  return Boolean(url && key && url !== '' && key !== '');
-}
+// isSupabaseConfigured is now imported from supabaseClient.ts for dynamic config support
 
 async function safeUpsert<T extends object>(
   table: string,
