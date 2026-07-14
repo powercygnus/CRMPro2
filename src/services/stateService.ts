@@ -66,6 +66,12 @@ export function loadState(): AppState {
         ...u,
         is_active: isUserActive(u.last_seen),
       }));
+      // Back-compat: ensure user profile fields (migration 011)
+      parsed.users = parsed.users.map((u: any) => ({
+        nickname: null,
+        avatar_url: null,
+        ...u,
+      }));
       // Back-compat: ensure inventory fields exist
       if (!parsed.inventory) parsed.inventory = [];
       if (!parsed.inventoryTransactions) parsed.inventoryTransactions = [];
@@ -299,6 +305,8 @@ export class StateService {
       last_seen: null,
       is_active: false,
       created_at: nowISO(),
+      nickname: null,
+      avatar_url: null,
     };
     const actor = this.getCurrentUser();
     this.setState((prev) => ({
@@ -324,7 +332,7 @@ export class StateService {
     return user;
   }
 
-  updateUser(id: string, updates: Partial<Pick<User, 'username' | 'password' | 'role'>>): void {
+  updateUser(id: string, updates: Partial<Pick<User, 'username' | 'password' | 'role' | 'nickname' | 'avatar_url'>>): void {
     const actor = this.getCurrentUser();
     this.setState((prev) => ({
       ...prev,

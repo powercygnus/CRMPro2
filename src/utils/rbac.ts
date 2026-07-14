@@ -33,14 +33,13 @@ export const ALL_PAGES: PageKey[] = [
 // Admin always has access to every page (handled separately below).
 const ROLE_PAGES: Record<UserRole, PageKey[]> = {
   admin: ALL_PAGES,
-  // Technicians handle the repair workflow end-to-end.
-  technician: ['dashboard', 'repairs', 'customers', 'devices', 'warranty', 'whatsapp', 'notifications'],
-  // Sales accounts manage sales + inventory, and assign/monitor deliveries
-  // for the orders they create.
-  sales: ['sales', 'inventory', 'delivery'],
-  // Delivery drivers see ONLY their delivery trip list — fully blocked
-  // from financial/sales data, dashboards, and repair tickets.
-  delivery: ['delivery'],
+  // Technicians handle the repair workflow and customer/device lookups.
+  technician: ['repairs', 'customers', 'devices', 'warranty', 'settings'],
+  // Sales manages the full customer journey: repairs intake, inventory,
+  // sales, and delivery coordination — plus personal profile settings.
+  sales: ['repairs', 'customers', 'devices', 'warranty', 'inventory', 'sales', 'delivery', 'settings'],
+  // Delivery drivers see ONLY their delivery trip list and personal settings.
+  delivery: ['delivery', 'settings'],
 };
 
 function normalizeRole(role: string): UserRole {

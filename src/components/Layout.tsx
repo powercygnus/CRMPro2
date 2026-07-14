@@ -6,6 +6,7 @@ import { isUserActive, formatTimeAgo } from '../utils/helpers';
 import { showToast } from './Toast';
 import { getAllowedPages, ROLE_LABELS } from '../utils/rbac';
 import { NotificationBell } from './NotificationBell';
+import { UserAvatar } from './UserAvatar';
 
 // ============================================================
 // Page keys — all navigable views in the application
@@ -82,7 +83,7 @@ const NAV_CATEGORIES: NavCategory[] = [
       { key: 'users', label: 'Users Management', icon: <Users className="h-5 w-5" />, adminOnly: true },
       { key: 'logs', label: 'Central Audit Trail', icon: <ScrollText className="h-5 w-5" />, adminOnly: true },
       { key: 'activity', label: 'System Activity Log', icon: <Activity className="h-5 w-5" />, adminOnly: true },
-      { key: 'settings', label: 'System Settings', icon: <Settings className="h-5 w-5" />, adminOnly: true },
+      { key: 'settings', label: 'Settings', icon: <Settings className="h-5 w-5" /> },
     ],
   },
 ];
@@ -246,7 +247,9 @@ export function Layout({ currentPage, onNavigate, children }: LayoutProps) {
                       isUserActive(u.last_seen) ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
                     }`}
                   />
-                  <span className="truncate font-medium text-gray-700 dark:text-gray-300">{u.username}</span>
+                  <span className="truncate font-medium text-gray-700 dark:text-gray-300">
+                    {u.nickname?.trim() || u.username}
+                  </span>
                   <span className="ml-auto shrink-0 text-gray-400">{formatTimeAgo(u.last_seen)}</span>
                 </div>
               ))}
@@ -258,12 +261,12 @@ export function Layout({ currentPage, onNavigate, children }: LayoutProps) {
       {/* User profile footer */}
       <div className={`border-t border-gray-200 dark:border-slate-700 p-3 ${collapsed && !isMobile ? 'flex justify-center' : ''}`}>
         <div className={`flex items-center gap-3 rounded-lg ${collapsed && !isMobile ? 'justify-center p-2' : 'px-2 py-1.5'}`}>
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300 font-semibold text-sm shrink-0">
-            {user.username.charAt(0).toUpperCase()}
-          </div>
+          <UserAvatar user={user} size="md" />
           {(!collapsed || isMobile) && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user.username}</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                {user.nickname?.trim() || user.username}
+              </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">{ROLE_LABELS[user.role] ?? normalizedRole}</p>
             </div>
           )}
@@ -335,11 +338,11 @@ export function Layout({ currentPage, onNavigate, children }: LayoutProps) {
 
         {/* User profile area */}
         <div className="flex items-center gap-2.5 pl-3 border-l border-gray-200 dark:border-slate-700">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300 font-semibold text-xs">
-            {user.username.charAt(0).toUpperCase()}
-          </div>
+          <UserAvatar user={user} size="sm" />
           <div className="text-right">
-            <p className="text-sm font-medium text-gray-900 dark:text-white leading-tight">{user.username}</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white leading-tight">
+              {user.nickname?.trim() || user.username}
+            </p>
             <span className="text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider">{ROLE_LABELS[user.role] ?? normalizedRole}</span>
           </div>
           <button

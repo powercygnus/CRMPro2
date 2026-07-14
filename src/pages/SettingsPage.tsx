@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Building2,
   Users as UsersIcon,
@@ -19,6 +19,9 @@ import {
   EyeOff,
   Save,
   TestTube,
+  UserCog,
+  Camera,
+  KeyRound,
 } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { showToast } from '../components/Toast';
@@ -26,7 +29,7 @@ import { isUserActive, formatTimeAgo, getStatusColor, getStatusDotColor } from '
 import { getApiEndpoint } from '../utils/api';
 import type { RepairRecord } from '../types';
 
-type TabKey = 'business' | 'users' | 'messaging' | 'integrations';
+type TabKey = 'profile' | 'business' | 'users' | 'messaging' | 'integrations';
 
 interface TabDef {
   key: TabKey;
@@ -34,16 +37,22 @@ interface TabDef {
   icon: React.ReactNode;
 }
 
-const TABS: TabDef[] = [
-  { key: 'business', label: 'Business Profile', icon: <Building2 className="h-4 w-4" /> },
-  { key: 'users', label: 'Users Monitor', icon: <UsersIcon className="h-4 w-4" /> },
-  { key: 'messaging', label: 'Messaging Hub', icon: <Send className="h-4 w-4" /> },
-  { key: 'integrations', label: 'Integrations', icon: <Plug className="h-4 w-4" /> },
+const ALL_TABS: TabDef[] = [
+  { key: 'profile',      label: 'My Profile',      icon: <UserCog className="h-4 w-4" /> },
+  { key: 'business',     label: 'Business Profile', icon: <Building2 className="h-4 w-4" /> },
+  { key: 'users',        label: 'Users Monitor',    icon: <UsersIcon className="h-4 w-4" /> },
+  { key: 'messaging',    label: 'Messaging Hub',    icon: <Send className="h-4 w-4" /> },
+  { key: 'integrations', label: 'Integrations',     icon: <Plug className="h-4 w-4" /> },
 ];
 
 export function SettingsPage() {
   const { state, service } = useStore();
-  const [activeTab, setActiveTab] = useState<TabKey>('business');
+  const user = service.getCurrentUser()!;
+  const isAdmin = user.role === 'admin';
+
+  // Admins see all tabs; other roles see only their personal profile tab.
+  const visibleTabs = isAdmin ? ALL_TABS : ALL_TABS.filter((t) => t.key === 'profile');
+  const [activeTab, setActiveTab] = useState<TabKey>('profile');
   const [confirmReset, setConfirmReset] = useState(false);
 
   const handleReset = () => {
@@ -65,13 +74,15 @@ export function SettingsPage() {
     <div className="p-6 lg:p-8 max-w-5xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Settings</h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">System configuration, integrations, and data management</p>
+        <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
+          {isAdmin ? 'System configuration, integrations, and data management' : 'Manage your profile and account'}
+        </p>
       </div>
 
       {/* Tab bar */}
       <div className="card mb-4">
         <div className="flex flex-wrap gap-1 p-2">
-          {TABS.map((tab) => (
+          {visibleTabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
@@ -92,63 +103,289 @@ export function SettingsPage() {
 
       {/* Tab content */}
       <div className="animate-fade-in">
-        {activeTab === 'business' && <BusinessProfileTab />}
-        {activeTab === 'users' && <UsersMonitorTab />}
-        {activeTab === 'messaging' && <MessagingHubTab />}
+        {activeTab === 'profile'      && <MyProfileTab />}
+        {activeTab === 'business'     && <BusinessProfileTab />}
+        {activeTab === 'users'        && <UsersMonitorTab />}
+        {activeTab === 'messaging'    && <MessagingHubTab />}
         {activeTab === 'integrations' && <IntegrationsTab />}
       </div>
 
-      {/* Data overview + danger zone (always visible below tabs) */}
-      <div className="mt-6 space-y-4">
-        <div className="card p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Database className="h-5 w-5 text-gray-400" />
-            <h2 className="text-base font-semibold text-gray-900">Data Overview</h2>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {dataStats.map((stat) => (
-              <div key={stat.label} className="rounded-lg bg-gray-50 dark:bg-[#0b0f19] border border-gray-100 dark:border-slate-800 p-3">
-                <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">{stat.count}</p>
-                <p className="text-xs text-gray-400 dark:text-slate-500">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="card p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Info className="h-5 w-5 text-gray-400" />
-            <h2 className="text-base font-semibold text-gray-900">Storage</h2>
-          </div>
-          <p className="text-sm text-gray-600 dark:text-slate-400">
-            All data is stored locally in your browser's localStorage. This means your data persists across
-            page reloads but is specific to this browser. No data is sent to any external server.
-          </p>
-          <div className="mt-3 rounded-lg bg-gray-50 dark:bg-[#0b0f19] border border-gray-100 dark:border-slate-800 p-3">
-            <p className="text-xs font-mono text-gray-500 dark:text-slate-400">Storage Key: crm_pro_state_v1</p>
-          </div>
-        </div>
-
-        <div className="card p-5 border-red-200">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="h-5 w-5 text-red-500" />
-            <h2 className="text-base font-semibold text-gray-900">Danger Zone</h2>
-          </div>
-          <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
-            Reset all data to the default seed state. This will permanently delete all changes you've made
-            and restore the original demo data.
-          </p>
-          {!confirmReset ? (
-            <button onClick={() => setConfirmReset(true)} className="btn-danger">
-              <RotateCcw className="h-4 w-4" /> Reset All Data
-            </button>
-          ) : (
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-sm font-medium text-red-600">Are you sure? This cannot be undone.</span>
-              <button onClick={handleReset} className="btn-danger">Yes, Reset Everything</button>
-              <button onClick={() => setConfirmReset(false)} className="btn-secondary">Cancel</button>
+      {/* Data overview + danger zone — admin only */}
+      {isAdmin && (
+        <div className="mt-6 space-y-4">
+          <div className="card p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Database className="h-5 w-5 text-gray-400" />
+              <h2 className="text-base font-semibold text-gray-900">Data Overview</h2>
             </div>
-          )}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {dataStats.map((stat) => (
+                <div key={stat.label} className="rounded-lg bg-gray-50 dark:bg-[#0b0f19] border border-gray-100 dark:border-slate-800 p-3">
+                  <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">{stat.count}</p>
+                  <p className="text-xs text-gray-400 dark:text-slate-500">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Info className="h-5 w-5 text-gray-400" />
+              <h2 className="text-base font-semibold text-gray-900">Storage</h2>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-slate-400">
+              All data is stored locally in your browser's localStorage and synced to Supabase.
+            </p>
+          </div>
+
+          <div className="card p-5 border-red-200">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              <h2 className="text-base font-semibold text-gray-900">Danger Zone</h2>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
+              Reset all data to the default seed state. This will permanently delete all changes you've made
+              and restore the original demo data.
+            </p>
+            {!confirmReset ? (
+              <button onClick={() => setConfirmReset(true)} className="btn-danger">
+                <RotateCcw className="h-4 w-4" /> Reset All Data
+              </button>
+            ) : (
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-sm font-medium text-red-600">Are you sure? This cannot be undone.</span>
+                <button onClick={handleReset} className="btn-danger">Yes, Reset Everything</button>
+                <button onClick={() => setConfirmReset(false)} className="btn-secondary">Cancel</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Tab 0: My Profile — visible to all roles
+// ============================================================
+
+/** Resize + center-crop an image file to 200×200 JPEG (base64 data URL). */
+function compressAvatar(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const size = 200;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('Canvas not available')); return; }
+      const min = Math.min(img.width, img.height);
+      const sx = (img.width - min) / 2;
+      const sy = (img.height - min) / 2;
+      ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+      resolve(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Image load failed')); };
+    img.src = objectUrl;
+  });
+}
+
+function MyProfileTab() {
+  const { service } = useStore();
+  const user = service.getCurrentUser()!;
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  // Profile form state
+  const [nickname, setNickname] = useState(user.nickname ?? '');
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(user.avatar_url ?? null);
+  const [avatarFile, setAvatarFile] = useState<string | null>(null); // base64 to save
+  const [profileSaving, setProfileSaving] = useState(false);
+
+  // Password form state
+  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
+  const [showPw, setShowPw] = useState({ current: false, next: false, confirm: false });
+  const [pwSaving, setPwSaving] = useState(false);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('error', 'Please select an image file');
+      return;
+    }
+    try {
+      const compressed = await compressAvatar(file);
+      setAvatarPreview(compressed);
+      setAvatarFile(compressed);
+    } catch {
+      showToast('error', 'Could not process image — please try another file');
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    setAvatarPreview(null);
+    setAvatarFile(''); // empty string signals removal
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const handleSaveProfile = () => {
+    setProfileSaving(true);
+    const updates: Parameters<typeof service.updateUser>[1] = {
+      nickname: nickname.trim() || null,
+    };
+    if (avatarFile !== null) {
+      // avatarFile === '' means the user removed their avatar
+      updates.avatar_url = avatarFile || null;
+    }
+    service.updateUser(user.id, updates);
+    setAvatarFile(null); // mark as saved
+    setProfileSaving(false);
+    showToast('success', 'Profile updated');
+  };
+
+  const handleChangePassword = () => {
+    if (!pwForm.current) { showToast('error', 'Enter your current password'); return; }
+    if (pwForm.current !== user.password) { showToast('error', 'Current password is incorrect'); return; }
+    if (!pwForm.next) { showToast('error', 'Enter a new password'); return; }
+    if (pwForm.next.length < 4) { showToast('error', 'New password must be at least 4 characters'); return; }
+    if (pwForm.next !== pwForm.confirm) { showToast('error', 'Passwords do not match'); return; }
+    setPwSaving(true);
+    service.updateUser(user.id, { password: pwForm.next });
+    setPwForm({ current: '', next: '', confirm: '' });
+    setPwSaving(false);
+    showToast('success', 'Password changed successfully');
+  };
+
+  const displayName = user.nickname?.trim() || user.username;
+
+  return (
+    <div className="space-y-4">
+      {/* ── Avatar + Display Name ──────────────────────────── */}
+      <div className="card p-6">
+        <div className="flex items-center gap-2 mb-5">
+          <UserCog className="h-5 w-5 text-brand-500" />
+          <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">Profile</h2>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-6 items-start">
+          {/* Avatar preview + upload */}
+          <div className="flex flex-col items-center gap-3">
+            <div className="relative">
+              {avatarPreview ? (
+                <img
+                  src={avatarPreview}
+                  alt={displayName}
+                  className="h-20 w-20 rounded-full object-cover border-2 border-brand-200 dark:border-brand-800"
+                />
+              ) : (
+                <div className="h-20 w-20 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center text-brand-700 dark:text-brand-300 font-bold text-2xl border-2 border-brand-200 dark:border-brand-800">
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-white shadow hover:bg-brand-700 transition-colors"
+                title="Upload photo"
+              >
+                <Camera className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+            {avatarPreview && (
+              <button
+                onClick={handleRemoveAvatar}
+                className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400"
+              >
+                Remove photo
+              </button>
+            )}
+          </div>
+
+          {/* Nickname + username */}
+          <div className="flex-1 min-w-0 space-y-4">
+            <div>
+              <label className="label">Username <span className="text-gray-400 font-normal">(read-only)</span></label>
+              <input className="input bg-gray-50 dark:bg-slate-800/50 text-gray-500 dark:text-slate-400" value={user.username} readOnly />
+            </div>
+            <div>
+              <label className="label">Display Name (Nickname)</label>
+              <input
+                className="input"
+                placeholder={user.username}
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                maxLength={40}
+              />
+              <p className="mt-1 text-xs text-gray-400">Shown in the sidebar and header. Falls back to username if empty.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 flex justify-end">
+          <button
+            onClick={handleSaveProfile}
+            disabled={profileSaving}
+            className="btn-primary"
+          >
+            <Save className="h-4 w-4" />
+            Save Profile
+          </button>
+        </div>
+      </div>
+
+      {/* ── Change Password ────────────────────────────────── */}
+      <div className="card p-6">
+        <div className="flex items-center gap-2 mb-5">
+          <KeyRound className="h-5 w-5 text-brand-500" />
+          <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">Change Password</h2>
+        </div>
+
+        <div className="space-y-4 max-w-sm">
+          {((['current', 'next', 'confirm'] as const)).map((field) => {
+            const labels = { current: 'Current Password', next: 'New Password', confirm: 'Confirm New Password' };
+            return (
+              <div key={field}>
+                <label className="label">{labels[field]}</label>
+                <div className="relative">
+                  <input
+                    type={showPw[field] ? 'text' : 'password'}
+                    className="input pr-10"
+                    placeholder="••••••••"
+                    value={pwForm[field]}
+                    onChange={(e) => setPwForm((p) => ({ ...p, [field]: e.target.value }))}
+                    autoComplete={field === 'current' ? 'current-password' : 'new-password'}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw((p) => ({ ...p, [field]: !p[field] }))}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPw[field] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-5 flex justify-end">
+          <button
+            onClick={handleChangePassword}
+            disabled={pwSaving}
+            className="btn-primary"
+          >
+            <KeyRound className="h-4 w-4" />
+            Update Password
+          </button>
         </div>
       </div>
     </div>
@@ -572,7 +809,7 @@ function IntegrationsTab() {
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        const { data, error } = await (await import('../services/supabaseClient')).supabase
+        const { data, error: _waErr } = await (await import('../services/supabaseClient')).supabase
           .from('whatsapp_config')
           .select('*')
           .eq('id', 1)

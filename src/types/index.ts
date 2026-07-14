@@ -14,6 +14,9 @@ export interface User {
   // is_active is derived: true when last_seen is within 45 seconds of now
   is_active: boolean;
   created_at: string;
+  // Profile customisation (migration 011)
+  nickname?: string | null;    // display name — falls back to username when null
+  avatar_url?: string | null;  // base64 data URL or external image URL
 }
 
 export type RepairStatus =

@@ -638,6 +638,27 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3001;
 
+// ============================================================
+// Startup migrations — idempotent, run once on boot
+// ============================================================
+async function runStartupMigrations() {
+  if (!pool) return;
+  const migrations = [
+    // 011: user profile fields
+    'ALTER TABLE users ADD COLUMN IF NOT EXISTS nickname   TEXT',
+    'ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT',
+  ];
+  for (const sql of migrations) {
+    try {
+      await dbQuery(sql);
+    } catch (err) {
+      console.warn('[DB] Migration step skipped:', err.message);
+    }
+  }
+  console.log('[DB] Startup migrations complete.');
+}
+runStartupMigrations();
+
 app.listen(PORT, () => {
   console.log(`[CRM Pro Backend] Server running on port ${PORT}`);
   console.log(`[CORS] Static origins: ${getAllowedOrigins().join(', ')}`);
